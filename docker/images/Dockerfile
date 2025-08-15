@@ -1,0 +1,2 @@
+FROM n8nio/n8n:1.69.1
+EXPOSE 5678
