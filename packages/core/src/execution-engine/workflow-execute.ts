@@ -768,7 +768,7 @@ export class WorkflowExecute {
 				// eslint-disable-next-line @typescript-eslint/no-for-in-array
 				for (const outputIndexParent in workflow.connectionsBySourceNode[parentNodeName].main) {
 					if (
-						!workflow.connectionsBySourceNode[parentNodeName].main.hasOwnProperty(outputIndexParent)
+						!Object.hasOwn(workflow.connectionsBySourceNode[parentNodeName].main, outputIndexParent)
 					) {
 						continue;
 					}
@@ -1091,7 +1091,7 @@ export class WorkflowExecute {
 	 * Handles execution of disabled nodes by passing through input data
 	 */
 	private handleDisabledNode(inputData: ITaskDataConnections): IRunNodeResponse {
-		if (inputData.hasOwnProperty('main') && inputData.main.length > 0) {
+		if (Object.hasOwn(inputData, 'main') && inputData.main.length > 0) {
 			// If the node is disabled simply return the data from the first main input
 			if (inputData.main[0] === null) {
 				return { data: undefined };
@@ -1196,7 +1196,7 @@ export class WorkflowExecute {
 			// Does not block the execution from continuing
 			const jsonCompatibleResult = isJsonCompatible(data, new Set(['pairedItem']));
 			if (!jsonCompatibleResult.isValid) {
-				Container.get(ErrorReporter).error('node execution returned incorrect data', {
+				Container.get(ErrorReporter).error('node execution returned incorrect output', {
 					shouldBeLogged: false,
 					extra: {
 						nodeName: node.name,
@@ -1649,7 +1649,7 @@ export class WorkflowExecute {
 
 					// Get the index of the current run
 					runIndex = 0;
-					if (this.runExecutionData.resultData.runData.hasOwnProperty(executionNode.name)) {
+					if (Object.hasOwn(this.runExecutionData.resultData.runData, executionNode.name)) {
 						runIndex = this.runExecutionData.resultData.runData[executionNode.name].length;
 					}
 					currentExecutionTry = `${executionNode.name}:${runIndex}`;
@@ -1777,10 +1777,8 @@ export class WorkflowExecute {
 							});
 
 							nodeSuccessData = this.assignPairedItems(nodeSuccessData, executionData);
-							const noOutputData =
-								!nodeSuccessData || nodeSuccessData.every((data) => !data?.length);
 
-							if (noOutputData) {
+							if (!nodeSuccessData?.[0]?.[0]) {
 								if (executionData.node.alwaysOutputData === true) {
 									const pairedItem: IPairedItemData[] = [];
 
@@ -1851,7 +1849,7 @@ export class WorkflowExecute {
 					// Add the data to return to the user
 					// (currently does not get cloned as data does not get changed, maybe later we should do that?!?!)
 
-					if (!this.runExecutionData.resultData.runData.hasOwnProperty(executionNode.name)) {
+					if (!Object.hasOwn(this.runExecutionData.resultData.runData, executionNode.name)) {
 						this.runExecutionData.resultData.runData[executionNode.name] = [];
 					}
 
@@ -1887,7 +1885,7 @@ export class WorkflowExecute {
 							)
 						) {
 							// Workflow should continue running even if node errors
-							if (executionData.data.hasOwnProperty('main') && executionData.data.main.length > 0) {
+							if (Object.hasOwn(executionData.data, 'main') && executionData.data.main.length > 0) {
 								// Simply get the input data of the node if it has any and pass it through
 								// to the next node
 								if (executionData.data.main[0] !== null) {
@@ -1979,8 +1977,8 @@ export class WorkflowExecute {
 
 					// Add the nodes to which the current node has an output connection to that they can
 					// be executed next
-					if (workflow.connectionsBySourceNode.hasOwnProperty(executionNode.name)) {
-						if (workflow.connectionsBySourceNode[executionNode.name].hasOwnProperty('main')) {
+					if (Object.hasOwn(workflow.connectionsBySourceNode, executionNode.name)) {
+						if (Object.hasOwn(workflow.connectionsBySourceNode[executionNode.name], 'main')) {
 							let outputIndex: string;
 							let connectionData: IConnection;
 							// Iterate over all the outputs
@@ -1995,7 +1993,8 @@ export class WorkflowExecute {
 							// eslint-disable-next-line @typescript-eslint/no-for-in-array
 							for (outputIndex in workflow.connectionsBySourceNode[executionNode.name].main) {
 								if (
-									!workflow.connectionsBySourceNode[executionNode.name].main.hasOwnProperty(
+									!Object.hasOwn(
+										workflow.connectionsBySourceNode[executionNode.name].main,
 										outputIndex,
 									)
 								) {
@@ -2006,7 +2005,7 @@ export class WorkflowExecute {
 								for (connectionData of workflow.connectionsBySourceNode[executionNode.name].main[
 									outputIndex
 								] ?? []) {
-									if (!workflow.nodes.hasOwnProperty(connectionData.node)) {
+									if (!Object.hasOwn(workflow.nodes, connectionData.node)) {
 										throw new ApplicationError('Destination node not found', {
 											extra: {
 												sourceNodeName: executionNode.name,
@@ -2326,7 +2325,7 @@ export class WorkflowExecute {
 				return true;
 			}
 
-			if (!executionData.data.hasOwnProperty('main')) {
+			if (!Object.hasOwn(executionData.data, 'main')) {
 				// ExecutionData does not even have the connection set up so can
 				// not have that data, so add it again to be executed later
 				this.runExecutionData.executionData!.nodeExecutionStack.push(executionData);
@@ -2597,7 +2596,7 @@ export class WorkflowExecute {
 								item: 0,
 							};
 						} else if (isSameNumberOfItems) {
-							// The number of oncoming and outcoming items is identical so we can
+							// The number of incoming and outgoing items is identical so we can
 							// make the reasonable assumption that each of the input items
 							// is the origin of the corresponding output items
 							item.pairedItem = {
